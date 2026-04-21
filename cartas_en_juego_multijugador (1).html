@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartas en Juego - Redaccion Comercial</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f4f0;
+    --bg-tertiary: #eeede9;
+    --text-primary: #1a1a1a;
+    --text-secondary: #6b6b6b;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.2);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --font-sans: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .game { width: 100%; max-width: 640px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .header { text-align: center; margin-bottom: 1.5rem; }
+  .header h1 { font-size: 28px; font-weight: 600; color: var(--text-primary); }
+  .header p { font-size: 15px; color: var(--text-secondary); margin-top: 6px; }
+
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: var(--radius-md); margin-bottom: 8px; letter-spacing: 0.03em; }
+  .badge-purple { background: #EEEDFE; color: #3C3489; }
+  .badge-teal   { background: #E1F5EE; color: #085041; }
+  .badge-amber  { background: #FAEEDA; color: #633806; }
+
+  .card {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 0.5px solid var(--border-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background 0.15s;
+    font-family: var(--font-sans);
+  }
+  .btn:hover { background: var(--bg-secondary); }
+  .btn-primary { background: #7F77DD; color: #fff; border-color: #7F77DD; }
+  .btn-primary:hover { background: #534AB7; border-color: #534AB7; }
+  .btn-block { display: block; width: 100%; text-align: center; margin-top: 10px; }
+
+  .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 1rem 0; }
+  .player-card { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 12px; text-align: center; }
+  .player-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 17px; margin: 0 auto 8px; }
+  .player-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .player-score { font-size: 22px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+  .player-score-label { font-size: 11px; color: var(--text-secondary); }
+
+  .question-box { background: var(--bg-primary); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .question-text { font-size: 16px; color: var(--text-primary); line-height: 1.6; }
+  .carta-texto { background: var(--bg-secondary); border-left: 3px solid #7F77DD; border-radius: 0 var(--radius-md) var(--radius-md) 0; padding: 12px 16px; margin: 10px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-style: italic; white-space: pre-wrap; }
+
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1rem; }
+  .option-btn { padding: 14px 12px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; cursor: pointer; border: 2px solid transparent; text-align: center; transition: all 0.15s; color: #fff; font-family: var(--font-sans); line-height: 1.4; }
+  .opt-a { background: #378ADD; }
+  .opt-b { background: #1D9E75; }
+  .opt-c { background: #D85A30; }
+  .opt-d { background: #BA7517; }
+  .option-btn:hover { opacity: 0.85; transform: scale(0.98); }
+  .option-btn.correct { border-color: #639922; box-shadow: 0 0 0 3px #C0DD97; }
+  .option-btn.wrong { opacity: 0.35; }
+  .option-btn:disabled { cursor: default; transform: none; }
+
+  .progress-bar { height: 6px; background: var(--bg-secondary); border-radius: 99px; margin: 0.5rem 0 1rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: #7F77DD; border-radius: 99px; transition: width 0.4s; }
+
+  .meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-secondary); margin-bottom: 0.5rem; }
+  .timer { font-size: 28px; font-weight: 600; color: #D85A30; }
+
+  .feedback { text-align: center; padding: 1rem; border-radius: var(--radius-lg); margin: 1rem 0; font-size: 15px; font-weight: 500; line-height: 1.5; }
+  .feedback.ok   { background: #EAF3DE; color: #3B6D11; }
+  .feedback.fail { background: #FCEBEB; color: #A32D2D; }
+
+  .turn-indicator { text-align: center; background: #EEEDFE; color: #3C3489; border-radius: var(--radius-lg); padding: 10px; font-size: 14px; font-weight: 500; margin-bottom: 1rem; }
+
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; margin: 1.5rem 0; }
+  .podium-place { text-align: center; }
+  .podium-bar { border-radius: var(--radius-md) var(--radius-md) 0 0; width: 80px; }
+  .podium-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+  .podium-pts { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: #7F77DD; box-shadow: 0 0 0 2px rgba(127,119,221,0.2); }
+
+  .player-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="game" id="app">
+
+  <div class="screen active" id="screen-setup">
+    <div class="header">
+      <div class="badge badge-purple">Redaccion Comercial</div>
+      <h1>Cartas en Juego</h1>
+      <p>Memorando · Circular · Solicitud de Credito</p>
+    </div>
+    <div class="card">
+      <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 10px;">Nombres de los jugadores (hasta 6)</p>
+      <div id="player-inputs"></div>
+      <button class="btn" onclick="addPlayerInput()" style="margin-top: 8px; font-size: 13px; padding: 7px 14px;">+ Agregar jugador</button>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="startGame()">Iniciar juego</button>
+  </div>
+
+  <div class="screen" id="screen-question">
+    <div class="meta-row">
+      <span id="q-label"></span>
+      <span class="timer" id="timer-display">15</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="turn-indicator" id="turn-indicator"></div>
+    <div class="question-box">
+      <div class="badge" id="q-type-badge"></div>
+      <p class="question-text" id="question-text"></p>
+      <div class="carta-texto" id="carta-fragment" style="display:none"></div>
+    </div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="feedback" id="feedback" style="display:none"></div>
+    <button class="btn btn-primary btn-block" id="btn-next" onclick="nextQuestion()" style="display:none; margin-top:10px;">Siguiente pregunta</button>
+  </div>
+
+  <div class="screen" id="screen-scores">
+    <div class="header">
+      <div class="badge badge-teal">Marcador</div>
+      <h1>Puntuaciones</h1>
+    </div>
+    <div class="player-grid" id="scoreboard"></div>
+    <button class="btn btn-primary btn-block" onclick="showQuestion()">Continuar</button>
+  </div>
+
+  <div class="screen" id="screen-end">
+    <div class="header">
+      <div class="badge badge-amber">Juego terminado</div>
+      <h1>Resultados finales</h1>
+    </div>
+    <div id="podium-display"></div>
+    <div class="player-grid" id="final-scores"></div>
+    <button class="btn btn-primary btn-block" onclick="restartGame()">Jugar de nuevo</button>
+  </div>
+
+</div>
+
+<script>
+const COLORS      = ['#7F77DD','#1D9E75','#D85A30','#BA7517','#D4537E','#378ADD'];
+const LIGHT_COLORS= ['#EEEDFE','#E1F5EE','#FAECE7','#FAEEDA','#FBEAF0','#E6F1FB'];
+const TEXT_COLORS = ['#3C3489','#085041','#712B13','#633806','#72243E','#0C447C'];
+
+const QUESTIONS = [
+  {
+    tipo:"Identifica el tipo", badge:"badge-purple",
+    pregunta:"Lee el siguiente fragmento y selecciona que tipo de comunicacion comercial es:",
+    fragmento:"PARA: Todo el personal administrativo\nDE: Gerencia General\nASUNTO: Cambio de horario de almuerzo\nA partir del lunes 28 de abril, el horario de almuerzo sera de 12:00 m a 1:00 p.m.",
+    opciones:["Memorando","Circular","Solicitud de credito","Oficio"],
+    correcta:1,
+    explicacion:"Es una CIRCULAR porque va dirigida a TODOS los empleados del area administrativa."
+  },
+  {
+    tipo:"Encuentra el error", badge:"badge-amber",
+    pregunta:"El siguiente memorando tiene un error grave. Identificalo:",
+    fragmento:"MEMORANDO\nPARA: Clientes externos de la empresa\nDE: Recursos Humanos\nASUNTO: Reunion de fin de año\nSe les invita a la reunion interna del personal el dia viernes.",
+    opciones:["La firma esta incompleta","El memorando no puede ir dirigido a clientes externos","No tiene fecha","El asunto es demasiado corto"],
+    correcta:1,
+    explicacion:"Los memorandos son comunicaciones INTERNAS. Nunca se dirigen a clientes externos."
+  },
+  {
+    tipo:"Identifica el tipo", badge:"badge-purple",
+    pregunta:"Que tipo de carta es la mas adecuada para esta situacion?",
+    fragmento:"La empresa 'Muebles Torres' quiere pedirle a su proveedor un plazo de 90 dias para pagar una factura de $15.000.000 por materiales comprados.",
+    opciones:["Circular","Memorando interno","Solicitud de credito","Carta de presentacion"],
+    correcta:2,
+    explicacion:"Se usa una SOLICITUD DE CREDITO para pedir plazos o financiamiento a un proveedor o entidad."
+  },
+  {
+    tipo:"Encuentra el error", badge:"badge-amber",
+    pregunta:"Cual es el error en esta solicitud de credito?",
+    fragmento:"Señores BANCOLOMBIA\nLes escribo porque necesito que me presten plata para comprar un carro. Soy buen pagador y tengo trabajo. Espero que me ayuden.\nGracias.",
+    opciones:["No tiene fecha","El lenguaje es informal y no incluye datos financieros del solicitante","Esta bien redactada","Le falta la firma"],
+    correcta:1,
+    explicacion:"Una solicitud de credito debe usar lenguaje formal, incluir datos financieros, garantias y el monto exacto solicitado."
+  },
+  {
+    tipo:"Identifica el tipo", badge:"badge-purple",
+    pregunta:"Una empresa necesita comunicar a TODOS sus vendedores en distintas ciudades sobre una nueva politica de descuentos. Que documento usa?",
+    fragmento:null,
+    opciones:["Memorando","Solicitud de credito","Circular","Acta de reunion"],
+    correcta:2,
+    explicacion:"La CIRCULAR se usa para comunicar informacion a multiples destinatarios a la vez, incluso en distintas ubicaciones."
+  },
+  {
+    tipo:"Encuentra el error", badge:"badge-amber",
+    pregunta:"Encuentra el error en este memorando:",
+    fragmento:"MEMORANDO N° 024\nFECHA: Bogota, 20 de abril de 2026\nPARA: Dr. Carlos Mejia, Jefe de Ventas\nDE: Maria Lopez\nASUNTO: Informe mensual\n\nAdjunto el informe de ventas del mes de marzo. Quedo atenta.\n\nMaria Lopez - Contadora",
+    opciones:["No tiene error, esta bien redactado","No tiene firma del jefe que lo aprueba","El asunto no concuerda con el contenido","No especifica el cargo de quien lo envia en el encabezado"],
+    correcta:3,
+    explicacion:"En el encabezado del memorando, el campo DE debe incluir nombre Y cargo. Falta el cargo de Maria Lopez."
+  },
+  {
+    tipo:"Identifica el tipo", badge:"badge-purple",
+    pregunta:"Selecciona el fragmento que corresponde a una SOLICITUD DE CREDITO correctamente redactada:",
+    fragmento:null,
+    opciones:[
+      "PARA: Dpto. Contabilidad / Asunto: Gastos del mes",
+      "Respetados señores: Por medio de la presente, solicito respetuosamente un cupo de credito por $5.000.000 a 6 meses, con el fin de adquirir maquinaria para nuestra empresa.",
+      "Estimados colaboradores: Se informa que el dia viernes no habra laborado.",
+      "MEMORANDO: Se solicita informe de ventas a mas tardar el jueves."
+    ],
+    correcta:1,
+    explicacion:"La opcion B tiene el tono formal, especifica el monto, el plazo y el proposito: elementos clave de una solicitud de credito."
+  },
+  {
+    tipo:"Encuentra el error", badge:"badge-amber",
+    pregunta:"Esta circular tiene un problema de formato. Cual es?",
+    fragmento:"CIRCULAR N° 003\nFECHA: 20 de abril de 2026\nPARA: Sr. Juan Perez, Vendedor\nDE: Gerencia\nASUNTO: Nueva politica de comisiones\n\nLes informamos a todos los vendedores que a partir del mes de mayo...",
+    opciones:[
+      "No tiene fecha",
+      "Dice 'PARA: Sr. Juan Perez' pero en el cuerpo dice 'a todos los vendedores' — contradiccion tipica de la circular",
+      "Le falta el numero de circular",
+      "El asunto es incorrecto"
+    ],
+    correcta:1,
+    explicacion:"En una circular el campo PARA debe decir el grupo destinatario, no una persona especifica. Ej: 'PARA: Personal de Ventas'."
+  }
+];
+
+let players = [], scores = [], currentQ = 0, currentPlayer = 0, answered = false, timerInterval = null, timeLeft = 15;
+
+function initPlayerInputs() {
+  const c = document.getElementById('player-inputs');
+  c.innerHTML = '';
+  for (let i = 0; i < 2; i++) addPlayerInput();
+}
+
+function addPlayerInput() {
+  const c = document.getElementById('player-inputs');
+  if (c.children.length >= 6) return;
+  const idx = c.children.length;
+  const div = document.createElement('div');
+  div.className = 'player-input-row';
+  div.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${LIGHT_COLORS[idx]};color:${TEXT_COLORS[idx]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;">${idx+1}</div><input type="text" placeholder="Nombre del jugador ${idx+1}" maxlength="20">`;
+  c.appendChild(div);
+}
+
+function startGame() {
+  const inputs = document.querySelectorAll('#player-inputs input');
+  players = [];
+  inputs.forEach(inp => { const v = inp.value.trim(); if (v) players.push(v); });
+  if (players.length < 1) players = ['Jugador 1', 'Jugador 2'];
+  scores = new Array(players.length).fill(0);
+  currentQ = 0; currentPlayer = 0;
+  showQuestion();
+}
+
+function showQuestion() {
+  if (currentQ >= QUESTIONS.length) { endGame(); return; }
+  showScreen('screen-question');
+  answered = false;
+  const q = QUESTIONS[currentQ];
+  const total = QUESTIONS.length;
+  document.getElementById('q-label').textContent = `Pregunta ${currentQ+1} de ${total}`;
+  document.getElementById('progress-fill').style.width = ((currentQ/total)*100) + '%';
+  document.getElementById('turn-indicator').textContent = `Turno de: ${players[currentPlayer]}`;
+  const badge = document.getElementById('q-type-badge');
+  badge.textContent = q.tipo; badge.className = 'badge ' + q.badge;
+  document.getElementById('question-text').textContent = q.pregunta;
+  const frag = document.getElementById('carta-fragment');
+  if (q.fragmento) { frag.style.display = 'block'; frag.textContent = q.fragmento; } else { frag.style.display = 'none'; }
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  const grid = document.getElementById('options-grid');
+  const optClasses = ['opt-a','opt-b','opt-c','opt-d'];
+  const letters = ['A','B','C','D'];
+  grid.innerHTML = '';
+  q.opciones.forEach((op, i) => {
+    const btn = document.createElement('button');
+    btn.className = `option-btn ${optClasses[i]}`;
+    btn.textContent = `${letters[i]}) ${op}`;
+    btn.onclick = () => selectAnswer(i);
+    grid.appendChild(btn);
+  });
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timeLeft = 15;
+  document.getElementById('timer-display').textContent = timeLeft;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById('timer-display').textContent = timeLeft;
+    if (timeLeft <= 0) { clearInterval(timerInterval); if (!answered) selectAnswer(-1); }
+  }, 1000);
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const q = QUESTIONS[currentQ];
+  const btns = document.querySelectorAll('.option-btn');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.correcta) btn.classList.add('correct');
+    else if (i === idx && idx !== q.correcta) btn.classList.add('wrong');
+  });
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'block';
+  if (idx === q.correcta) {
+    const pts = Math.max(100, timeLeft * 20);
+    scores[currentPlayer] += pts;
+    fb.className = 'feedback ok';
+    fb.textContent = `Correcto! +${pts} puntos. ${q.explicacion}`;
+  } else if (idx === -1) {
+    fb.className = 'feedback fail';
+    fb.textContent = `Tiempo agotado! Respuesta correcta: ${['A','B','C','D'][q.correcta]}. ${q.explicacion}`;
+  } else {
+    fb.className = 'feedback fail';
+    fb.textContent = `Incorrecto. Respuesta correcta: ${['A','B','C','D'][q.correcta]}. ${q.explicacion}`;
+  }
+  document.getElementById('btn-next').style.display = 'block';
+}
+
+function nextQuestion() {
+  currentQ++;
+  currentPlayer = (currentPlayer + 1) % players.length;
+  if (currentQ % 2 === 0 || currentQ >= QUESTIONS.length) showScoreboard();
+  else showQuestion();
+}
+
+function showScoreboard() {
+  if (currentQ >= QUESTIONS.length) { endGame(); return; }
+  showScreen('screen-scores');
+  const sb = document.getElementById('scoreboard');
+  const sorted = players.map((p,i) => ({name:p, score:scores[i], idx:i})).sort((a,b)=>b.score-a.score);
+  sb.innerHTML = '';
+  sorted.forEach((p, rank) => {
+    const div = document.createElement('div');
+    div.className = 'player-card';
+    div.innerHTML = `<div class="player-avatar" style="background:${LIGHT_COLORS[p.idx]};color:${TEXT_COLORS[p.idx]};">${p.name.charAt(0).toUpperCase()}</div><div class="player-name">${rank===0?'Lider: ':''}${p.name}</div><div class="player-score">${p.score.toLocaleString()}</div><div class="player-score-label">puntos</div>`;
+    sb.appendChild(div);
+  });
+}
+
+function endGame() {
+  showScreen('screen-end');
+  const sorted = players.map((p,i) => ({name:p, score:scores[i], idx:i})).sort((a,b)=>b.score-a.score);
+  const podiumOrder = [1,0,2].map(i => sorted[i]).filter(Boolean);
+  const heights = [80,120,60];
+  const bgColors = ['#AFA9EC','#7F77DD','#CECBF6'];
+  const labels = ['2do','1er','3er'];
+  let html = '<div class="podium">';
+  podiumOrder.forEach((p, pi) => {
+    html += `<div class="podium-place"><div class="player-avatar" style="background:${LIGHT_COLORS[p.idx]};color:${TEXT_COLORS[p.idx]};margin:0 auto 6px;">${p.name.charAt(0).toUpperCase()}</div><div class="podium-pts">${p.score.toLocaleString()}</div><div class="podium-bar" style="height:${heights[pi]}px;background:${bgColors[pi]};margin-top:6px;"></div><div class="podium-label">${labels[pi]} ${p.name}</div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('podium-display').innerHTML = html;
+  const fs = document.getElementById('final-scores');
+  fs.innerHTML = '';
+  sorted.forEach((p, rank) => {
+    const div = document.createElement('div');
+    div.className = 'player-card';
+    div.innerHTML = `<div class="player-avatar" style="background:${LIGHT_COLORS[p.idx]};color:${TEXT_COLORS[p.idx]};">${rank+1}</div><div class="player-name">${p.name}</div><div class="player-score">${p.score.toLocaleString()}</div><div class="player-score-label">puntos totales</div>`;
+    fs.appendChild(div);
+  });
+}
+
+function restartGame() {
+  currentQ = 0; currentPlayer = 0;
+  scores = new Array(players.length).fill(0);
+  showQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+initPlayerInputs();
+</script>
+</body>
+</html>
